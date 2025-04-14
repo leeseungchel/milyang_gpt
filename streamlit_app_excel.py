@@ -1,218 +1,229 @@
 import streamlit as st
-import pandas as pd
 from openai import OpenAI
-from io import BytesIO
-import matplotlib.pyplot as plt
-import re
-
-# 페이지 설정
-st.set_page_config(page_title="엑셀 편집 + GPT 분석", layout="wide")
-st.sidebar.title("📁 메뉴 선택")
-menu = st.sidebar.radio("기능 선택", ["📂 엑셀 편집 페이지", "🤖 GPT 분석 페이지"])
 
 # API 키 로드
 api_key = st.secrets["general"]["OPEN_API_KEY"]
 client = OpenAI(api_key=api_key)
 
-# 공통 저장소
-if "merged_df" not in st.session_state:
-    st.session_state.merged_df = None
+st.set_page_config(page_title="AI 자동 작성기", layout="wide")
 
-# 📂 엑셀 편집 페이지
-if menu == "📂 엑셀 편집 페이지":
-    st.title("📂 엑셀 파일 개별 편집")
+# 사이드바 선택
+option = st.sidebar.radio("🧭 생성기 선택", ["🎤 인사말씀 생성기", "📰 보도자료 생성기", "📁 공적조서 작성기"])
 
-    uploaded_files = st.file_uploader(
-        "엑셀 파일을 하나 이상 업로드하세요",
-        type=["xlsx", "xls"],
-        accept_multiple_files=True
-    )
+# ========= 인사말씀 생성기 =========
+if option == "🎤 인사말씀 생성기":
+    st.title("🎤 GPT 자동 연설문 작성 서비스")
+    col1, col2 = st.columns([1, 1])
+    with col2:
+        st.header("🎤 연설문 생성 옵션")
+        title = st.text_input("인사말 제목", placeholder="예) 시민과 함께하는 봄맞이 행사")
+        greeting = st.selectbox("인사말 성격", ["대중적", "축제행사", "위원회", "명정"])
+        speaker = st.selectbox("연설자 선택", ["밀양시장", "시의회 의장", "국장", "위원장"])
+        audience1 = st.selectbox("청중 선택 1", ["밀양시민", "관광객", "공직자", "개별위원"])
+        audience2 = st.selectbox("청중 선택 2", ["없음", "청년", "장애인", "여성단체"])
+        season = st.selectbox("계절 선택", ["봄", "여름", "가을", "겨울"])
+        quote = st.selectbox("인용구 선택", ["없음", "감정이입", "사자성어", "속담", "영어격언"])
+        disaster = st.selectbox("재난 상황", ["없음", "재난피해", "재난복구"])
 
-    edited_dfs = {}
-
-    if uploaded_files:
-        for i, file in enumerate(uploaded_files):
-            with st.expander(f"📄 {file.name} - 편집 옵션"):
+        parts = []
+        parts.append(f"『{title}』의 성격은 {greeting}입니다.")
+        parts.append(f"{speaker} ~님의 인사말씀은 {audience1}과(와) {audience2}를 청중으로 작성해야 합니다.")
+        parts.append(f"계절적 요소인 {season}에 어울리며,")
+        if quote != "없음":
+            parts.append({
+                "감정이입": "감정을 이입할 수 있는 문장을 1회 언급하며,",
+                "사자성어": "적절한 사자성어를 1회 인용하고,",
+                "속담": "속담을 활용하여 표현을 풍부하게 하며,",
+                "영어격언": "영어 격언을 통해 인상 깊게 전달합니다."
+            }[quote])
+        else:
+            parts.append("인용 없이 간결하게 구성됩니다.")
+        if disaster == "재난피해":
+            parts.append("최근 재난피해를 고려하여 위로와 공감을 담고,")
+        elif disaster == "재난복구":
+            parts.append("복구 현황과 감사 인사를 포함하며,")
+        else:
+            parts.append("재난 관련 내용은 포함되지 않습니다.")
+        parts.append("이와 같이 전체 인사말씀은 풍부하고 품격 있게 구성되어야 합니다.")
+        generated_text = " ".join(parts)
+        prompt = st.text_area("✏️ 생성된 연설문 (수정 가능)", value=generated_text, height=200)
+        if st.button("🎯 연설문 생성"):
+            with st.spinner("GPT 연설문 생성 중..."):
                 try:
-                    df = pd.read_excel(file)
-                    st.write("🗂️ 원본 데이터 미리보기")
-                    st.dataframe(df, use_container_width=True)
-
-                    cols_to_drop = st.multiselect(
-                        f"[{file.name}] 삭제할 열 선택", df.columns.tolist(), key=f"cols_{i}"
+                    response = client.chat.completions.create(
+                        model="gpt-4o",
+                        messages=[
+                            {"role": "system", "content": "당신은 연설문 작성 전문가입니다. 아래 연설문 가이드를 참고해 실제 연설문을 작성해주세요."},
+                            {"role": "user", "content": prompt}
+                        ],
+                        temperature=0.7
                     )
-                    if cols_to_drop:
-                        df = df.drop(columns=cols_to_drop)
-
-                    row_indices = st.multiselect(
-                        f"[{file.name}] 삭제할 행 인덱스 선택", df.index.tolist(), key=f"rows_{i}"
-                    )
-                    if row_indices:
-                        df = df.drop(index=row_indices)
-
-                    edited_dfs[file.name] = df
-                    st.dataframe(df, use_container_width=True)
-
+                    gpt_output = response.choices[0].message.content
+                    st.session_state['speech_result'] = gpt_output
                 except Exception as e:
-                    st.error(f"❌ {file.name} 처리 중 오류: {e}")
+                    st.error(f"⚠️ GPT 호출 실패: {str(e)}")
+    with col1:
+        st.header("📄 GPT 결과")
+        speech_result = st.session_state.get('speech_result', "아직 생성된 연설문이 없습니다.")
+        st.text_area("📝 GPT가 작성한 연설문", value=speech_result, height=500, key="speech_display", disabled=True)
+        if speech_result and speech_result != "아직 생성된 연설문이 없습니다.":
+            st.download_button("📥 연설문 다운로드", data=speech_result, file_name="연설문.txt")
 
-        if st.button("📎 최종 병합하기"):
-            if edited_dfs:
+# ========= 보도자료 생성기 =========
+elif option == "📰 보도자료 생성기":
+    st.title("📰 GPT 자동 보도자료 작성 서비스")
+    col1, col2 = st.columns([1, 1])
+    with col2:
+        st.header("🛠️ 보도자료 입력 정보")
+        title = st.text_input("1. 보도자료 초안 제목", placeholder="예) 2025년 밀양 봄꽃축제 개최 안내")
+        person = st.text_input("2. 담당자", placeholder="예) 홍길동")
+        contact = st.text_input("3. 연락처", placeholder="예) 010-1234-5678")
+        content = st.text_area("4. 보도자료 핵심 내용", height=300, placeholder="예) 밀양시는 오는 4월 10일부터 봄꽃축제를 개최합니다...")
+        if st.button("🎯 보도자료 생성"):
+            with st.spinner("GPT가 보도자료 제목 5개와 전문을 작성 중입니다..."):
                 try:
-                    merged_df = pd.concat(edited_dfs.values(), ignore_index=True)
-                    st.session_state.merged_df = merged_df
-                    st.success("✅ 병합 완료! GPT 페이지에서 분석 가능합니다.")
-                    st.dataframe(merged_df, use_container_width=True)
+                    prompt = f"""
+다음 정보를 참고하여,
+제목(초안): {title}
+담당자: {person}
+연락처: {contact}
 
-                    output = BytesIO()
-                    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-                        merged_df.to_excel(writer, index=False, sheet_name='병합데이터')
-                    output.seek(0)
+핵심 내용:
+{content}
 
-                    st.download_button(
-                        label="📥 병합된 엑셀 다운로드",
-                        data=output,
-                        file_name="merged_result.xlsx",
-                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                    )
+[출력 형식]
+1. 보도자료에 적합한 제목 5개를 제안합니다.
+2. 위에 제시된 정보를 기반으로 실제 언론에 배포 가능한 보도자료 전문을 작성해 주세요.  
+뉴스 기사 스타일로 문장을 구성하고, 리드문(핵심요약) → 본문 내용 → 인용문 → 마무리 순으로 구성해주세요.
 
-                except Exception as e:
-                    st.error(f"❌ 병합 실패: {e}")
-            else:
-                st.warning("편집된 데이터가 없습니다.")
-    else:
-        st.info("왼쪽에서 엑셀 파일을 업로드해주세요.")
+[출력 예시]
+보도자료 추천 제목
+1, 
+2, 
+3, 
+4,
+5,
 
-# 🤖 GPT 분석 페이지
-elif menu == "🤖 GPT 분석 페이지":
-    st.title("🤖 GPT 기반 데이터 분석")
-
-    if st.session_state.merged_df is not None:
-        st.subheader("📊 병합된 데이터 미리보기")
-        st.dataframe(st.session_state.merged_df, use_container_width=True)
-
-        if st.button("🚀 GPT 자동 분석 실행 (데이터에 대한 간략한 설명 제공)"):
-            try:
-                df_csv = st.session_state.merged_df.to_csv(index=False)
-                auto_prompt = f"""
-다음은 사용자가 병합한 엑셀 데이터입니다. 이 데이터를 기반으로 주요 통계, 트렌드, 패턴을 자유롭게 분석해서 요약해 주세요.
-
-[CSV 데이터]
-{df_csv}
-"""
-                response = client.chat.completions.create(
-                    model="gpt-4o",
-                    messages=[
-                        {"role": "system", "content": "당신은 데이터 분석 전문가입니다. 주어진 데이터의 인사이트를 추출해 주세요."},
-                        {"role": "user", "content": auto_prompt}
-                    ],
-                    temperature=0.5
-                )
-                st.session_state.auto_response = response.choices[0].message.content
-            except Exception as e:
-                st.session_state.auto_response = f"❌ GPT 호출 실패: {e}"
-
-        if "auto_response" in st.session_state:
-            st.success("✅ GPT 자동 분석 결과")
-            st.markdown(st.session_state.auto_response)
-
-        st.markdown("---")
-        st.markdown("## 💬 GPT 분석 질문")
-
-        col1, col2 = st.columns(2)
-
-        # 일반 질문
-        with col1:
-            st.markdown("### 📌 일반 질문")
-            text_question = st.text_area("💬 질문을 입력하세요", placeholder="예: 주요 트렌드를 요약해주세요.", key="general_q")
-            if st.button("💡 GPT에게 일반 질문 요청", key="general_btn"):
-                try:
-                    df_csv = st.session_state.merged_df.to_csv(index=False)
-                    general_prompt = f"""
-다음은 사용자가 업로드한 엑셀 데이터를 CSV 형태로 제공한 것입니다. 이 데이터를 분석해서 아래 일반 질문에 답변해주세요.
-
-[CSV 데이터]
-{df_csv}
-
-[사용자 질문]
-{text_question}
+보도자료 내용
+...
 """
                     response = client.chat.completions.create(
                         model="gpt-4o",
                         messages=[
-                            {"role": "system", "content": "당신은 데이터 분석 전문가입니다."},
-                            {"role": "user", "content": general_prompt}
+                            {"role": "system", "content": "당신은 보도자료 작성 전문가입니다. 포맷과 문체를 전문적으로 구성해 주세요."},
+                            {"role": "user", "content": prompt}
                         ],
-                        temperature=0.5
+                        temperature=0.7
                     )
-                    st.session_state.general_response = response.choices[0].message.content
+                    gpt_output = response.choices[0].message.content
+                    st.session_state['press_result'] = gpt_output
                 except Exception as e:
-                    st.session_state.general_response = f"❌ GPT 호출 실패: {e}"
+                    st.error(f"⚠️ GPT 호출 실패: {str(e)}")
+    with col1:
+        st.header("📄 GPT 결과")
+        press_result = st.session_state.get('press_result', "아직 생성된 보도자료가 없습니다.")
+        st.text_area("📰 추천 제목 & 보도자료", value=press_result, height=600, key="press_display", disabled=True)
+        if press_result and press_result != "아직 생성된 보도자료가 없습니다.":
+            st.download_button("📥 보도자료 다운로드", data=press_result, file_name="보도자료.txt")
 
-            if "general_response" in st.session_state:
-                st.success("✅ GPT 일반 분석 결과")
-                st.markdown(st.session_state.general_response)
+# ========= 공적조서 생성기 =========
+elif option == "📁 공적조서 작성기":
+    def generate_merit_statement(grade, unit, details):
+        prompt = f"""
+    당신은 공적조서를 작성하는 전문가입니다. 다음 정보를 기반으로 정중하고 공공문서 형식에 맞는 공적조서를 작성해 주세요.
 
-        # 시각화 질문
-        with col2:
-            st.markdown("### 📊 시각화 관련 질문")
-            viz_question = st.text_area("📈 질문을 입력하세요", placeholder="예: 제품별 판매량을 막대 그래프로 보여주세요.", key="viz_q")
-            if st.button("📊 GPT에게 시각화 요청", key="viz_btn"):
-                try:
-                    df_csv = st.session_state.merged_df.to_csv(index=False)
-                    viz_prompt = f"""
-다음은 사용자가 업로드한 엑셀 데이터를 CSV 형태로 제공한 것입니다. 이 데이터를 분석해서 사용자 시각화 질문에 답변해주세요.
+    훈격: {grade}
+    단위 공적: {unit}
+    주요 실적:
+    {details}
 
-[코드와 같이 출력될 경우]
-1. df는 이미 정의되어 있으므로, df를 새로 생성하지 말고 바로 사용
-2. 코드를 제외한 모든 텍스트를 출력하지 않음
-3. **matplotlib 사용 시 koreanize-matplotlib를 사용**
-4. 만약 텍스트가 출력되면 앞에 #을 붙여 출력
+    [작성 지침]
+    - 첫 문장은 공적 개요로 시작해주세요.
+    - 실적은 항목별로 나열하지 않고 문단형으로 작성하세요.
+    - 과장된 표현 없이, 품격 있게 요약하세요.
+    """
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": "당신은 공적조서를 작성하는 전문가입니다."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.6
+        )
+        return response.choices[0].message.content
+    st.title("📁 GPT 자동 공적조서 작성기")
+    if "confirmed_list" not in st.session_state:
+        st.session_state.confirmed_list = []
+    if "gpt_result" not in st.session_state:
+        st.session_state.gpt_result = ""
+    if "inputs" not in st.session_state:
+        st.session_state.inputs = {"grade": "", "unit": "", "details": ""}
+    if "show_result" not in st.session_state:
+        st.session_state.show_result = False
 
-[CSV 데이터]
-{df_csv}
+    # 입력 리셋용 키 재설정
+    if "form_reset_key" not in st.session_state:
+        st.session_state.form_reset_key = 0
 
-[시각화 질문]
-{viz_question}
-"""
-                    response = client.chat.completions.create(
-                        model="gpt-4o",
-                        messages=[
-                            {"role": "system", "content": "당신은 데이터 분석 전문가입니다."},
-                            {"role": "user", "content": viz_prompt}
-                        ],
-                        temperature=0.5
-                    )
-                    raw = response.choices[0].message.content
-                    match = re.search(r"```(?:python)?\n(.*?)```", raw, re.DOTALL)
-                    code = match.group(1).strip() if match else raw.strip()
+    col1, col2 = st.columns([1, 1])
+    with col1:
+        st.header("✅ 확정된 공적조서")
+        if st.session_state.confirmed_list:
+            remove_index = None
+            for idx, (unit_title, content) in enumerate(st.session_state.confirmed_list):
+                col_l, col_r = st.columns([0.8, 0.2])
+                with col_l:
+                    st.markdown(f"**{idx+1}. {unit_title}**")
+                with col_r:
+                    if st.button("❌삭제", key=f"delete_{idx}"):
+                        remove_index = idx
+                with st.expander("📝 내용 보기", expanded=False):
+                    st.write(content)
 
-                    # GPT 코드 저장
-                    st.session_state.viz_code = code
+            if remove_index is not None:
+                st.session_state.confirmed_list.pop(remove_index)
+                st.rerun()
 
-                    # 실행 및 시각화 저장
-                    df = st.session_state.merged_df.copy()
-                    local_vars = {"df": df, "plt": plt, "pd": pd}
-                    exec(code, {}, local_vars)
+            # 전체 다운로드 텍스트 구성
+            all_text = "\n\n".join([
+                f"[{i+1}] {title}\n{body}" for i, (title, body) in enumerate(st.session_state.confirmed_list)
+            ])
+            st.download_button("📥 전체 공적조서 다운로드", data=all_text, file_name="공적조서.txt")
 
-                    buf = BytesIO()
-                    plt.savefig(buf, format="png", bbox_inches='tight')
-                    buf.seek(0)
-                    st.session_state.viz_image = buf
+            if st.button("🗑️ 전체 삭제"):
+                st.session_state.confirmed_list = []
+                st.rerun()
+        else:
+            st.write("아직 확정된 공적조서가 없습니다.")
 
-                except Exception as e:
-                    st.session_state.viz_code = f"# ❌ GPT 호출 실패: {e}"
-                    st.session_state.viz_image = None
+    with col2:
+        st.header("🛠️ 공적조서 입력")
 
-            if "viz_code" in st.session_state:
-                st.code(st.session_state.viz_code, language='python')
-                if st.session_state.viz_image:
-                    st.pyplot(plt)
-                    st.download_button(
-                        label="📸 그래프 PNG 다운로드",
-                        data=st.session_state.viz_image,
-                        file_name="graph.png",
-                        mime="image/png"
-                    )
-    else:
-        st.warning("먼저 '엑셀 편집 페이지'에서 병합된 데이터를 생성해주세요.")
+        # 입력 필드 (key에 리셋키 반영)
+        grade = st.text_input("1. 공적조서 훈격", value=st.session_state.inputs["grade"], key=f"grade_input_{st.session_state.form_reset_key}")
+        unit = st.text_input("2. 단위 공적 입력", value=st.session_state.inputs["unit"], key=f"unit_input_{st.session_state.form_reset_key}")
+        details = st.text_area("3. 주요 실적 입력", value=st.session_state.inputs["details"], height=200, key=f"details_input_{st.session_state.form_reset_key}")
+
+        col_a, col_b, col_c = st.columns([1, 1, 1])
+        generate = col_a.button("🎯 공적조서 생성")
+        regenerate = col_b.button("🔁 다시 생성")
+        confirm = col_c.button("📌 확정")
+
+        if generate or regenerate:
+            st.session_state.inputs = {"grade": grade, "unit": unit, "details": details}
+            with st.spinner("GPT가 공적조서를 작성 중입니다..."):
+                gpt_output = generate_merit_statement(grade, unit, details)
+                st.session_state.gpt_result = gpt_output
+                st.session_state.show_result = True
+
+        if confirm and st.session_state.gpt_result:
+            st.session_state.confirmed_list.append((unit, st.session_state.gpt_result))
+            st.session_state.inputs = {"grade": "", "unit": "", "details": ""}
+            st.session_state.gpt_result = ""
+            st.session_state.show_result = False
+            st.session_state.form_reset_key += 1
+            st.rerun()
+
+        if st.session_state.show_result and st.session_state.gpt_result:
+            st.text_area("📝 생성된 공적조서", value=st.session_state.gpt_result, height=300, disabled=True)
+            st.download_button("📥 공적조서 다운로드", data=st.session_state.gpt_result, file_name="merit.txt")
