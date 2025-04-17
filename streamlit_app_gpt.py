@@ -9,7 +9,7 @@ client = OpenAI(api_key=api_key)
 st.set_page_config(page_title="AI 자동 작성기", layout="wide")  # 페이지 제목과 레이아웃 설정
 
 # ====== 3. 사이드바: 생성기 종류 선택 ======
-option = st.sidebar.radio("🧭 생성기 선택", ["🎤 인사말씀 생성기", "📰 보도자료 생성기", "📁 공적조서 작성기"])
+option = st.sidebar.radio("🧭 생성기 선택", ["🎤 인사말씀 생성기", "📰 보도자료 생성기"])
 
 # ====== 4. 🎤 인사말씀 생성기 ======
 if option == "🎤 인사말씀 생성기":
@@ -122,93 +122,93 @@ elif option == "📰 보도자료 생성기":
         if press_result and press_result != "아직 생성된 보도자료가 없습니다.":
             st.download_button("📥 보도자료 다운로드", data=press_result, file_name="보도자료.txt")
 
-# ====== 6. 📁 공적조서 작성기 ======
-elif option == "📁 공적조서 작성기":
-    # GPT 호출 함수 정의
-    def generate_merit_statement(grade, unit, details):
-        with open("template/template_공적.txt", "r", encoding="utf-8") as file:
-            template = file.read()
-        prompt = template.format(grade=grade, unit=unit, details=details)
-        response = client.chat.completions.create(
-            model="gpt-4o",
-            messages=[
-                {"role": "system", "content": "당신은 공적조서를 작성하는 전문가입니다."},
-                {"role": "user", "content": prompt}
-            ],
-            temperature=0.7
-        )
-        return response.choices[0].message.content
+# # ====== 6. 📁 공적조서 작성기 ======
+# elif option == "📁 공적조서 작성기":
+#     # GPT 호출 함수 정의
+#     def generate_merit_statement(grade, unit, details):
+#         with open("template/template_공적.txt", "r", encoding="utf-8") as file:
+#             template = file.read()
+#         prompt = template.format(grade=grade, unit=unit, details=details)
+#         response = client.chat.completions.create(
+#             model="gpt-4o",
+#             messages=[
+#                 {"role": "system", "content": "당신은 공적조서를 작성하는 전문가입니다."},
+#                 {"role": "user", "content": prompt}
+#             ],
+#             temperature=0.7
+#         )
+#         return response.choices[0].message.content
 
-    # 제목
-    st.title("📁 GPT 자동 공적조서 작성기")
+#     # 제목
+#     st.title("📁 GPT 자동 공적조서 작성기")
 
-    # 상태 변수 초기화
-    if "confirmed_list" not in st.session_state:
-        st.session_state.confirmed_list = []  # 확정된 결과 저장 리스트
-    if "gpt_result" not in st.session_state:
-        st.session_state.gpt_result = ""  # 생성된 결과
-    if "inputs" not in st.session_state:
-        st.session_state.inputs = {"grade": "", "unit": "", "details": ""}
-    if "show_result" not in st.session_state:
-        st.session_state.show_result = False
-    if "form_reset_key" not in st.session_state:
-        st.session_state.form_reset_key = 0  # 입력값 리셋용 키
+#     # 상태 변수 초기화
+#     if "confirmed_list" not in st.session_state:
+#         st.session_state.confirmed_list = []  # 확정된 결과 저장 리스트
+#     if "gpt_result" not in st.session_state:
+#         st.session_state.gpt_result = ""  # 생성된 결과
+#     if "inputs" not in st.session_state:
+#         st.session_state.inputs = {"grade": "", "unit": "", "details": ""}
+#     if "show_result" not in st.session_state:
+#         st.session_state.show_result = False
+#     if "form_reset_key" not in st.session_state:
+#         st.session_state.form_reset_key = 0  # 입력값 리셋용 키
 
-    col1, col2 = st.columns([1, 1])
+#     col1, col2 = st.columns([1, 1])
 
-    # 왼쪽: 확정된 결과 리스트
-    with col1:
-        st.header("✅ 확정된 공적조서")
-        if st.session_state.confirmed_list:
-            remove_index = None
-            for idx, (unit_title, content) in enumerate(st.session_state.confirmed_list):
-                col_l, col_r = st.columns([0.8, 0.2])
-                with col_l:
-                    st.markdown(f"**{idx+1}. {unit_title}**")
-                with col_r:
-                    if st.button("❌삭제", key=f"delete_{idx}"):
-                        remove_index = idx
-                with st.expander("📝 내용 보기", expanded=False):
-                    st.write(content)
-            if remove_index is not None:
-                st.session_state.confirmed_list.pop(remove_index)
-                st.rerun()
-            all_text = "\n\n".join([f"[{i+1}] {title}\n{body}" for i, (title, body) in enumerate(st.session_state.confirmed_list)])
-            st.download_button("📥 전체 공적조서 다운로드", data=all_text, file_name="공적조서.txt")
-            if st.button("🗑️ 전체 삭제"):
-                st.session_state.confirmed_list = []
-                st.rerun()
-        else:
-            st.write("아직 확정된 공적조서가 없습니다.")
+#     # 왼쪽: 확정된 결과 리스트
+#     with col1:
+#         st.header("✅ 확정된 공적조서")
+#         if st.session_state.confirmed_list:
+#             remove_index = None
+#             for idx, (unit_title, content) in enumerate(st.session_state.confirmed_list):
+#                 col_l, col_r = st.columns([0.8, 0.2])
+#                 with col_l:
+#                     st.markdown(f"**{idx+1}. {unit_title}**")
+#                 with col_r:
+#                     if st.button("❌삭제", key=f"delete_{idx}"):
+#                         remove_index = idx
+#                 with st.expander("📝 내용 보기", expanded=False):
+#                     st.write(content)
+#             if remove_index is not None:
+#                 st.session_state.confirmed_list.pop(remove_index)
+#                 st.rerun()
+#             all_text = "\n\n".join([f"[{i+1}] {title}\n{body}" for i, (title, body) in enumerate(st.session_state.confirmed_list)])
+#             st.download_button("📥 전체 공적조서 다운로드", data=all_text, file_name="공적조서.txt")
+#             if st.button("🗑️ 전체 삭제"):
+#                 st.session_state.confirmed_list = []
+#                 st.rerun()
+#         else:
+#             st.write("아직 확정된 공적조서가 없습니다.")
 
-    # 오른쪽: 입력 및 생성
-    with col2:
-        st.header("🛠️ 공적조서 입력")
-        grade = st.text_input("1. 공적조서 훈격", value=st.session_state.inputs["grade"], key=f"grade_input_{st.session_state.form_reset_key}")
-        unit = st.text_input("2. 단위 공적 입력", value=st.session_state.inputs["unit"], key=f"unit_input_{st.session_state.form_reset_key}")
-        details = st.text_area("3. 주요 실적 입력", value=st.session_state.inputs["details"], height=200, key=f"details_input_{st.session_state.form_reset_key}")
+#     # 오른쪽: 입력 및 생성
+#     with col2:
+#         st.header("🛠️ 공적조서 입력")
+#         grade = st.text_input("1. 공적조서 훈격", value=st.session_state.inputs["grade"], key=f"grade_input_{st.session_state.form_reset_key}")
+#         unit = st.text_input("2. 단위 공적 입력", value=st.session_state.inputs["unit"], key=f"unit_input_{st.session_state.form_reset_key}")
+#         details = st.text_area("3. 주요 실적 입력", value=st.session_state.inputs["details"], height=200, key=f"details_input_{st.session_state.form_reset_key}")
 
-        col_a, col_b, col_c = st.columns([1, 1, 1])
-        generate = col_a.button("🎯 공적조서 생성")
-        regenerate = col_b.button("🔁 다시 생성")
-        confirm = col_c.button("📌 확정")
+#         col_a, col_b, col_c = st.columns([1, 1, 1])
+#         generate = col_a.button("🎯 공적조서 생성")
+#         regenerate = col_b.button("🔁 다시 생성")
+#         confirm = col_c.button("📌 확정")
 
-        if generate or regenerate:
-            st.session_state.inputs = {"grade": grade, "unit": unit, "details": details}
-            with st.spinner("GPT가 공적조서를 작성 중입니다..."):
-                gpt_output = generate_merit_statement(grade, unit, details)
-                st.session_state.gpt_result = gpt_output
-                st.session_state.show_result = True
+#         if generate or regenerate:
+#             st.session_state.inputs = {"grade": grade, "unit": unit, "details": details}
+#             with st.spinner("GPT가 공적조서를 작성 중입니다..."):
+#                 gpt_output = generate_merit_statement(grade, unit, details)
+#                 st.session_state.gpt_result = gpt_output
+#                 st.session_state.show_result = True
 
-        if confirm and st.session_state.gpt_result:
-            st.session_state.confirmed_list.append((unit, st.session_state.gpt_result))
-            st.session_state.inputs = {"grade": "", "unit": "", "details": ""}
-            st.session_state.gpt_result = ""
-            st.session_state.show_result = False
-            st.session_state.form_reset_key += 1  # 입력 필드 리셋을 위한 키 증가
-            st.rerun()
+#         if confirm and st.session_state.gpt_result:
+#             st.session_state.confirmed_list.append((unit, st.session_state.gpt_result))
+#             st.session_state.inputs = {"grade": "", "unit": "", "details": ""}
+#             st.session_state.gpt_result = ""
+#             st.session_state.show_result = False
+#             st.session_state.form_reset_key += 1  # 입력 필드 리셋을 위한 키 증가
+#             st.rerun()
 
-        if st.session_state.show_result and st.session_state.gpt_result:
-            st.text_area("📝 생성된 공적조서", value=st.session_state.gpt_result, height=300, disabled=True)
-            st.download_button("📥 공적조서 다운로드", data=st.session_state.gpt_result, file_name="merit.txt")
+#         if st.session_state.show_result and st.session_state.gpt_result:
+#             st.text_area("📝 생성된 공적조서", value=st.session_state.gpt_result, height=300, disabled=True)
+#             st.download_button("📥 공적조서 다운로드", data=st.session_state.gpt_result, file_name="merit.txt")
 
