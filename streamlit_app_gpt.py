@@ -1,6 +1,15 @@
 import streamlit as st
 from openai import OpenAI
 
+hide_streamlit_style = """
+    <style>
+        #MainMenu {visibility: hidden;}
+        footer {visibility: hidden;}
+        header {visibility: hidden;}
+    </style>
+"""
+st.markdown(hide_streamlit_style, unsafe_allow_html=True)
+
 # ====== 1. OpenAI API 키 로드 ======
 api_key = st.secrets["general"]["OPEN_API_KEY"]
 client = OpenAI(api_key=api_key)
