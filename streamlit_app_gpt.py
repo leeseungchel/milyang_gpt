@@ -8,6 +8,16 @@ client = OpenAI(api_key=api_key)
 # ====== 2. 페이지 기본 설정 ======
 st.set_page_config(page_title="AI 자동 작성기", layout="wide")  # 페이지 제목과 레이아웃 설정
 
+# ====== 상단 메뉴바, 푸터, 헤더 숨기기 ======
+hide_streamlit_style = """
+    <style>
+        #MainMenu {visibility: hidden;}
+        footer {visibility: hidden;}
+        header {visibility: hidden;}
+    </style>
+"""
+st.markdown(hide_streamlit_style, unsafe_allow_html=True)
+
 # ====== 3. 사이드바: 생성기 종류 선택 ======
 option = st.sidebar.radio("🧭 생성기 선택", ["🎤 인사말씀 생성기", "📰 보도자료 생성기"])
 
