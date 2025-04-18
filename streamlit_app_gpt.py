@@ -79,7 +79,7 @@ if option == "🎤 인사말씀 생성기":
                             {"role": "system", "content": "당신은 연설문 작성 전문가입니다. 아래 연설문 가이드를 참고해 실제 연설문을 작성해주세요."},
                             {"role": "user", "content": prompt}
                         ],
-                        temperature=0.7
+                        temperature=0
                     )
                     gpt_output = response.choices[0].message.content
                     st.session_state['speech_result'] = gpt_output  # 결과 저장
@@ -118,7 +118,7 @@ elif option == "📰 보도자료 생성기":
                             {"role": "system", "content": "당신은 보도자료 작성 전문가입니다. 포맷과 문체를 전문적으로 구성해 주세요."},
                             {"role": "user", "content": prompt}
                         ],
-                        temperature=0.7
+                        temperature=0
                     )
                     gpt_output = response.choices[0].message.content
                     st.session_state['press_result'] = gpt_output
