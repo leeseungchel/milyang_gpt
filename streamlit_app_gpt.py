@@ -79,7 +79,7 @@ if option == "🎤 인사말씀 생성기":
                             {"role": "system", "content": "당신은 연설문 작성 전문가입니다. 아래 연설문 가이드를 참고해 실제 연설문을 작성해주세요."},
                             {"role": "user", "content": prompt}
                         ],
-                        temperature=0
+                        temperature=0.7
                     )
                     gpt_output = response.choices[0].message.content
                     st.session_state['speech_result'] = gpt_output  # 결과 저장
