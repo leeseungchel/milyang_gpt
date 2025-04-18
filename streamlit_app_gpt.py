@@ -74,7 +74,7 @@ if option == "🎤 인사말씀 생성기":
             with st.spinner("GPT 연설문 생성 중..."):  # 로딩 스피너 표시
                 try:
                     response = client.chat.completions.create(
-                        model="gpt-3.5-turbo",  # 모델 선택
+                        model="gpt-4o",  # 모델 선택
                         messages=[
                             {"role": "system", "content": "당신은 연설문 작성 전문가입니다. 아래 연설문 가이드를 참고해 실제 연설문을 작성해주세요."},
                             {"role": "user", "content": prompt}
@@ -113,7 +113,7 @@ elif option == "📰 보도자료 생성기":
                         template = file.read()
                     prompt = template.format(title=title, person=person, contact=contact, content=content)
                     response = client.chat.completions.create(
-                        model="gpt-3.5-turbo",
+                        model="gpt-4o",
                         messages=[
                             {"role": "system", "content": "당신은 보도자료 작성 전문가입니다. 포맷과 문체를 전문적으로 구성해 주세요."},
                             {"role": "user", "content": prompt}
