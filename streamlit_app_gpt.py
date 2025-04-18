@@ -113,7 +113,7 @@ elif option == "📰 보도자료 생성기":
                         template = file.read()
                     prompt = template.format(title=title, person=person, contact=contact, content=content)
                     response = client.chat.completions.create(
-                        model="gpt-3.5-turbo",
+                        model="gpt-4o",
                         messages=[
                             {"role": "system", "content": "당신은 보도자료 작성 전문가입니다. 포맷과 문체를 전문적으로 구성해 주세요."},
                             {"role": "user", "content": prompt}
